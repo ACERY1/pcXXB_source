@@ -108,7 +108,8 @@
 
 		},
 		methods: {
-			_getCourseList(status, order = 0, type){
+			_getCourseList(status, order = 0, type = 0){
+				// type 0 是历史  1 是待上 2 是正在上
 				//status,statusList,pageSize,pageIndex,order,begin,end*/
 				// 加锁
 				this.isQuery = true
@@ -129,6 +130,11 @@
 					pageSize = this.historyPageSize
 					pageIndex = this.historyPageIndex
 				}
+
+				if(type ==2){
+
+				}
+
 				this.$api.getCourseList({
 					status: status, /*1正在上课，2已结束，3待上课，4教师旷课， 5已取消 ，6学生旷课 ，7教师和学生均旷课*/
 					statusList: [],// 拿多种状态的
@@ -150,8 +156,9 @@
 						//数组赋值*/
 						for (let i of _data.courses) {
 							this.courseInfo.push(i)
+//						  	console.log(this.courseInfo.length)
 						}
-						if (_data.courses.length < 5) {
+						if (_data.courses.length < 5 &&status!=1) {
 							this.busy = false;
 							this.loadingIcon = false;
 							this.isQuery = false
@@ -200,8 +207,8 @@
 			},
 			// 查询未上课程和正在上的课程
 			_queryCurrentCourse (){
-				this._getCourseList(1, 0, 1)
-				this._getCourseList(3, 0, 1)
+				this._getCourseList(1, 0, 2) // ing
+				this._getCourseList(3, 0, 1) // will
 			},
 			// 刷新按钮事件
 			reFresh(){
@@ -242,8 +249,7 @@
 			loadFn(){
 				// this.focus为1 为查询待上课程
 				if (this.focus) {
-					this._getCourseList(1, 0, 1)
-					this._getCourseList(3, 0, 1)
+					this._queryCurrentCourse()
 				} else {
 					this._getCourseList(2, 1, 1)
 				}
