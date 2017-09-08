@@ -35,7 +35,7 @@
 			} else {
 		  /*TODO:根据session 里是否有temp_courseId 来判断是否是从制作课件跳转回来的*/
 				if (getSession("temp_courseId") != null) {
-					console.log('get')
+//					console.log('get')
 					this.$router.push('/static/classInfo')
 					return;
 				}
