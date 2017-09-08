@@ -33,8 +33,9 @@ axios.interceptors.response.use(function (response) {
 export default async(type = 'GET', url = '', data = {}, config = {}) => {
 	// 提示： 这里的url填相对路径 例如'/test/example'
 	type = type.toUpperCase();
-	url = URL+url;
-
+	if(type!='UPLOAD'){
+		url = URL+url;
+	}
 	if (type === 'GET') {
 		let dataStr = ''; //数据拼接字符串
 		Object.keys(data).forEach(key => {
