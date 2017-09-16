@@ -7,7 +7,7 @@
 /*staticEnv 用于当前环境的判断*/
 /*2017.8.2: 以后再没有什么baseUrl了
  * 直接用nginx代理 使得服务端和客户端在同域下即可*/
-import URL from '../../config/baseURL'
+import {baseURL}  from '../../config/baseURL'
 import axios from 'axios'
 
 axios.interceptors.response.use(function (response) {
@@ -34,7 +34,7 @@ export default async(type = 'GET', url = '', data = {}, config = {}) => {
 	// 提示： 这里的url填相对路径 例如'/test/example'
 	type = type.toUpperCase();
 	if(type!='UPLOAD'){
-		url = URL+url;
+		url = baseURL+url;
 	}
 	if (type === 'GET') {
 		let dataStr = ''; //数据拼接字符串
@@ -79,8 +79,7 @@ export default async(type = 'GET', url = '', data = {}, config = {}) => {
 	
 }
 
-
-// console.log('ths request basic URL is', baseUrl)
+console.log('ths request basic URL is', baseURL)
 
 
 
