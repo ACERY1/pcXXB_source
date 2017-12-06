@@ -79,6 +79,7 @@
 			goLogin() {
 				/*DONE:这个判断有问题 ps:现在解决了*/
 				if (getCookie("x_token") == null || !getStore('name')) {
+					console.log('NO LOGIN')
 					this.$router.push('/static/login')
 				} else {
 					this.showMenu()
