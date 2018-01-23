@@ -57,7 +57,7 @@
 					</div>
 					<div class="signalBar">
 
-						<span >{{teacherName}}</span>
+						<span>{{teacherName}}</span>
 						<img src="../../../static/icons/live/s1.png" alt="" v-if="signal2 === 1 ||signal2 === 0">
 						<img src="../../../static/icons/live/s2.png" alt="" v-if="signal2 === 2">
 						<img src="../../../static/icons/live/s3.png" alt="" v-if="signal2 === 3">
@@ -66,12 +66,14 @@
 						<img src="../../../static/icons/live/s6.png" alt="" v-if="signal2 >= 6">
 					</div>
 				</div>
+				<basic-btn :title="'刷新'" :styles="'orange'" @click.native="fresh" :height="30" :width="80"
+						   :size="14"></basic-btn>
 			</div>
 		</div>
 		<tool-bar class="toolBar" @changeSize="changeSize" @changeColor="changeColor" @useEraser="useEraser"
 				  @cancelEraser="cancelEraser" @clearCanvas="clearCanvas" @addNewPage="addNewPage"
 				  @offClass="offClass" :nowPage="nowPage" :allPage="pageNum" @backPage="backPage"
-				  @forwardPage="forwardPage" @timeUp="timeCountDone"></tool-bar>
+				  @forwardPage="forwardPage" @timeUp="timeCountDone" v-loading="toolBar__loading"></tool-bar>
 	</div>
 </template>
 
@@ -91,7 +93,7 @@
 	import {computeVolume} from '../../common/scripts/util'
 	import basicBtn from '../../components/buttons/basicButtons.vue'
 	import {
-		randomNum, countFn, setMediaStream, getSession, setSession, removeSession, getStore
+		randomNum, countFn, setMediaStream, getSession, setSession, removeSession, getStore, setStore,removeStore
 	} from '../../common/scripts/util'
 	//		import mediaConnection from '../../../js/media-connection'
 	//		import mediaConnection from '../../common/scripts/mediaConnection'
@@ -135,6 +137,8 @@
 				isShowTeacherVideo: true,
 				classDone: false,//课程是否结束
 				pageIds: [],
+				toolBar__loading: false,
+
 			}
 		},
 		props: {},
@@ -168,9 +172,12 @@
 //						console.log(data)
 					this.gapTime2 = data
 				}
-			}
+			},
 		},
 		created() {
+			if (getStore('isAlreadyOnClass')) {
+				this.isOnClass = true
+			}
 //							this.isOnClass = true
 		},
 		mounted() {
@@ -314,6 +321,7 @@
 					if (!_data.status) {
 						// 上课成功
 						this.isOnClass = true
+						setStore('isAlreadyOnClass', true)
 						this.$store.commit('START_COUNT_TIME') // 提交上课状态
 
 					} else {
@@ -358,7 +366,6 @@
 								this.studentIn = false
 								return false
 							} else {
-								// 真小学生一样的接口
 								if (JSON.parse(res.data.result.msgs[0].data).studentIn) {
 									this.studentIn = true
 									this.$message({message: '学生已进入教室，可以开始上课了', duration: 1500})
@@ -508,6 +515,8 @@
 			// 下课
 			offClass() {
 				// 上课了，但是未到下课时间
+				console.log(this.isOnClass)
+				console.log(this.classDone)
 				if (this.isOnClass && !this.classDone) {
 					this._showMessageBox('未到下课时间，是否下课？', () => {
 						this.$api.teacherFinishCourse(this.courseId)
@@ -519,12 +528,13 @@
 				// 没有上课
 				if (!this.isOnClass && !this.classDone) {
 					/*还没有上课点击下课的情况*/
+
 					return null; // 测试时注释掉
 
-				  	//	下面是测试代码
-					removeSession('courseId_forClass')
-					this.$store.commit("UPDATE_COURSE_ID", this.courseId)
-					this.$router.push('/static/classInfo')
+//					//	下面是测试代码
+//					removeSession('courseId_forClass')
+//					this.$store.commit("UPDATE_COURSE_ID", this.courseId)
+//					this.$router.push('/static/classInfo')
 				}
 
 				// 可以下课
@@ -532,12 +542,14 @@
 					this.$api.teacherFinishCourse(this.courseId)
 					this.$store.commit("UPDATE_COURSE_ID", this.courseId)
 					removeSession('courseId_forClass')
+				  	removeStore('isAlreadyOnClass')
 					this.$router.push('/static/classInfo')
 				}
 
 			},
 			// 上一页
 			backPage() {
+				this.toolBar__loading = true
 				let _temp = {
 					page: this.pageIds[this.pageCount - 1].toString(),
 					imageUrl: this.images[this.pageCount - 1]
@@ -546,18 +558,21 @@
 				this._sendMessage('page', JSON.stringify(_temp)).then((res) => {
 //						console.log(res.data)
 					if (this.pageCount == 0) {
+						this.toolBar__loading = false
 						return;
 					}
 //						console.log(res.data.result.pageHistory.teacher)
 //						console.log(res.data.result.pageHistory.student)
 					this._reDrawByPage(res.data.result.pageHistory.student, res.data.result.pageHistory.teacher)
 					this.pageCount--
+					this.toolBar__loading = false
 				})
 
 
 			},
 			// 下一页
 			forwardPage() {
+				this.toolBar__loading = true
 				let _temp = {
 					page: this.pageIds[this.pageCount + 1].toString(),
 					imageUrl: this.images[this.pageCount + 1]
@@ -566,13 +581,16 @@
 				this._sendMessage('page', JSON.stringify(_temp)).then((res) => {
 					if (!res.data.status) {
 						if (this.pageCount >= this.images.length) {
+							this.toolBar__loading = false
 							return;
 						}
 						this._reDrawByPage(res.data.result.pageHistory.student, res.data.result.pageHistory.teacher)
 //							this._reDrawByPage(res.data.result.pageHistory.teacher,res.data.result.pageHistory.student, )
 						this.pageCount++
+						this.toolBar__loading = false
 						console.log("下一页自增")
 					} else {
+						this.toolBar__loading = false
 						console.error(res.data.msg)
 					}
 
@@ -615,6 +633,7 @@
 			},
 			// 传点坐标绘制canvas
 			_writeCanvas(data) {
+				this._convertPoint(data.data.point)
 				this._sendMessage('draw', JSON.stringify(data.data))
 			},
 			// 清除命令
@@ -682,6 +701,18 @@
 
 
 			},
+			// 坐标数据转换 为了适应其他端 1024 768
+			_convertPoint(dataPoints) {
+				for (let item of dataPoints) {
+					item.x = (item.x / this.localCanvas.width) * 1024
+					item.y = (item.y / this.localCanvas.height) * 768
+				}
+			},
+			// fresh
+			fresh() {
+				window.location.reload()
+			}
+
 		}
 	}
 </script>

@@ -87,7 +87,7 @@
 				<p class="course-stu-item-title">学生留言：</p>
 				<p class="course-stu-item-txt">{{hasMessage}}</p>
 			</div>
-			<div class="course-stu-item">
+			<div class="course-stu-item" v-loading="note__loading" element-loading-text="上传中">
 				<p class="course-stu-item-title">上课备注：</p>
 				<p class="course-stu-item-txt" v-if="!isShowTextArea" v-text="hasNote">{{hasNote}}</p>
 				<p class="add" v-show="!noted" @click="addNote">添加</p>
@@ -115,7 +115,7 @@
 </template>
 
 <script>
-	import {judgeTime, parseTime, setSession, getSession, removeSession} from '../../common/scripts/util'
+	import {judgeTime, parseTime, setSession, getSession, removeSession, removeStore} from '../../common/scripts/util'
 	import {courseStatus} from '../../common/scripts/filters'
 	import fetch from '../../common/scripts/fetch'
 	import bBtn from '../../components/buttons/basicButtons.vue'
@@ -167,7 +167,8 @@
 				},
 				isShowCourseWare: false,
 				courseWareImages: [], // 课件预览图片
-				temp_scrollTop: 0 // 用于计算弹窗内容滚动高度
+				temp_scrollTop: 0, // 用于计算弹窗内容滚动高度
+				note__loading: false // 备注请求过程的过渡动画
 			}
 		},
 		props: {},
@@ -266,6 +267,8 @@
 			removeSession('didPPT')
 			removeSession('temp_courseId')
 			removeSession('temp_courseWareId')
+			removeSession('courseId_forClass') // 删除topbar判断用的session
+			removeStore('isAlreadyOnClass')
 		},
 
 		beforeDestory() {
@@ -291,10 +294,14 @@
 			},
 			//发送备注至后台
 			setNote() {
+				this.note__loading = true
 				this.$api.setNote(this.$store.state.courseId, this.note, '').then((res) => {
 					this.info.note = {note: this.note}
 					this.isShowTextArea = false
+					this.note__loading = false
+					this.noted = true
 				}).catch((err) => {
+					this.note__loading = false
 					if (err.toString().indexOf('403') != -1) {
 						this.$message({
 							message: "没有认证！",
@@ -346,6 +353,14 @@
 			},
 			// 上课报告
 			goReportPage() {
+
+				// 2017年12月16日10:27:02 新加未下课不能填写报告功能
+				if (this.info.courseStatus === 3) {
+					this.$message({message: '未上课，暂时不能填写报告', duration: 1500})
+					return;
+				}
+
+
 				setSession("temp_courseId", this.$store.state.courseId)
 				this.$router.push("/static/classreport")
 //				this.$ipc.send("maximize")
@@ -390,7 +405,6 @@
 					console.log(err)
 				})
 
-				// 打开弹框（too many fucking dialog!!）
 			},
 			// 滑到顶部
 			scrollToTop() {
